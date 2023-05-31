@@ -34,7 +34,7 @@ Run the below code to train $\mathtt{List\text{-}One}$ with default hyper-parame
 
 ```
 export DATA_FOLDER="data/ctrp/LCO/"
-python src/cross_validate.py --model listone -d 100 --data_path $DATA_FOLDER/final_list_auc.txt --smiles_path $DATA_FOLDER/cmpd_id_name_group_smiles.txt --splits_path $DATA_FOLDER/splits/ --pretrained_ae -ae_path ${ae_path}
+python src/cross_validate.py --model listone --data_path $DATA_FOLDER/final_list_auc.txt --smiles_path $DATA_FOLDER/cmpd_id_name_group_smiles.txt --splits_path $DATA_FOLDER/splits/ --pretrained_ae -ae_path ${ae_path}
 ```
 
 Run the below code to train $\mathtt{List\text{-}All}$ with default hyper-parameters
