@@ -18,7 +18,7 @@ def evaluate(clobj, model, test_dataloader, args, Kpos):
 	labels   = []
 	in_test = []
 
-	if args.model in ['ranknet', 'listone', 'listall']:
+	if args.model in ['pairpushc', 'listone', 'listall']:
 		for batch in test_dataloader:
 			mols, features, clids = [], [], []
 

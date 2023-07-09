@@ -36,10 +36,6 @@ class Scoring(nn.Module):
         super(Scoring, self).__init__()
         self.out_size = args.mol_out_size
 
-        if args.feature_gen:
-            if not args.use_features_only:
-                self.out_size += 2048
-
         self.scoring = args.scoring
         if args.update_emb == 'cell+list-attention2':
             self.scoring = 'mlp2'
@@ -62,7 +58,7 @@ class Scoring(nn.Module):
                 return (self.ffn(cell_emb)*(cmp1_emb - cmp2_emb)).sum(dim=1)
             elif self.scoring == 'mlp':
                 return self.ffn(torch.concat((cell_emb, cmp1_emb), dim=1)).squeeze() - \
-                self.ffn(torch.concat((cell_emb, cmp2_emb), dim=1)).squeeze()
+                self.ffn(torch.concat((cell_emb, cmp2_emb), dim=1)).squeeze() # type: ignore
             #score = (self.ffn(cmp1_emb - cmp2_emb)*cell_emb).sum(dim=1)
         elif output_type == 1:
             if self.scoring == 'linear':
@@ -70,7 +66,7 @@ class Scoring(nn.Module):
                 score2 = (self.ffn(cell_emb)*cmp2_emb).sum(dim=1)
             elif self.scoring == 'mlp':
                 score1 = self.ffn(torch.concat((cell_emb, cmp1_emb), dim=1)).squeeze()
-                score2 = self.ffn(torch.concat((cell_emb, cmp2_emb), dim=1)).squeeze()
+                score2 = self.ffn(torch.concat((cell_emb, cmp2_emb), dim=1)).squeeze() # type: ignore
             return score1, score2
         else:
             if self.scoring == 'linear':
@@ -110,7 +106,7 @@ class RankNet(nn.Module):
 
         self.classify_pairs = args.classify_pairs
         self.classify_cmp = args.classify_cmp
-        self.cluster = args.cluster
+        #self.cluster = args.cluster
         self.agg_emb = args.agg_emb
 
         if self.update_emb == 'concat':
@@ -173,7 +169,7 @@ class RankNet(nn.Module):
             cmp2_emb = (1+gate2)*cmp2_emb
         elif self.agg_emb == 'concat':
             cmp1_emb = torch.concat((cmp1_emb, cmp1_emb*gate1), dim=1)
-            cmp2_emb = torch.concat((cmp2_emb, cmp2_emb*gate2), dim=1)
+            cmp2_emb = torch.concat((cmp2_emb, cmp2_emb*gate2), dim=1) # type: ignore
         return cmp1_emb, cmp2_emb
 
 
@@ -199,15 +195,15 @@ class RankNet(nn.Module):
                 cmp1_emb, cmp2_emb = self.update(cell_emb, cmp1_emb, cmp2_emb)
 
             if self.classify_pairs:
-                plabel = self.classifierp(torch.concat((cell_emb, cmp1_emb, cmp2_emb),dim=1)).squeeze()
+                plabel = self.classifierp(torch.concat((cell_emb, cmp1_emb, cmp2_emb),dim=1)).squeeze() # type: ignore
 
             if self.classify_cmp:
                 clabel1 = self.classifierc(torch.concat((cell_emb, cmp1_emb),dim=1)).squeeze()
-                clabel2 = self.classifierc(torch.concat((cell_emb, cmp2_emb),dim=1)).squeeze()
+                clabel2 = self.classifierc(torch.concat((cell_emb, cmp2_emb),dim=1)).squeeze() # type: ignore
                 clabel = torch.concat((clabel1, clabel2))
 
-            if self.cluster:
-                cmp_sim = sim(cmp1_emb, cmp2_emb)
+            #if self.cluster:
+            #    cmp_sim = sim(cmp1_emb, cmp2_emb)
 
             return self.scoring(cell_emb, cmp1_emb, cmp2_emb, output_type), plabel, clabel, cmp_sim
 

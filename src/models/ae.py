@@ -17,16 +17,20 @@ class AE(nn.Module):
 		self.encoder = nn.Sequential(
 						nn.Linear(args.ae_in_size, hidden_size),
 						nn.ReLU(),
+						nn.Dropout(args.dropout),
 						nn.Linear(hidden_size, hidden_size//4),
 						nn.ReLU(),
+						nn.Dropout(args.dropout),
 						nn.Linear(hidden_size//4, args.ae_out_size),
 						)
 
 		self.decoder = nn.Sequential(
 						nn.Linear(args.ae_out_size, hidden_size//4),
 						nn.ReLU(),
+						nn.Dropout(args.dropout),
 						nn.Linear(hidden_size//4, hidden_size),
 						nn.ReLU(),
+						nn.Dropout(args.dropout),
 						nn.Linear(hidden_size, args.ae_in_size),
 						)
 

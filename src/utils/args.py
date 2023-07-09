@@ -24,13 +24,13 @@ def parse_args(args = None):
 
     # Model and features
     parser.add_argument('--model', type=str, default='ranknet',
-                        choices=['ranknet', 'listone', 'listall'])
+                        choices=['pairpushc', 'listone', 'listall'])
     parser.add_argument('--gnn', type=str,
                         choices=['dmpn'])
-    parser.add_argument('-fgen', '--feature_gen', default='morgan_count', choices=['morgan', 'morgan_count',
+    parser.add_argument('-fgen', '--feature_gen', default=None, choices=['morgan', 'morgan_count',
                         'morgan_tanimoto_bioassay', 'rdkit_2d', 'rdkit_2d_normalized'],
                         help='Without `use_features_only`, this will concat molecule level features to learned gnn emb')
-    parser.add_argument('-fonly', '--use_features_only', action='store_true', help='use only features for baselines')
+    #parser.add_argument('-fonly', '--use_features_only', action='store_true', help='use only features for baselines')
 
     # Training and testing
     parser.add_argument('--do_train', action='store_true', help='Train the model?')
@@ -70,7 +70,7 @@ def parse_args(args = None):
     parser.add_argument('-lr', '--learning_rate', default=1e-3, type=float, help='Learning rate')
     parser.add_argument('-e', '--max_iter', default=100, type=int, help='Num of epochs')
     parser.add_argument('-b', '--batch_size', default=1, type=int, help='Batch size')
-    parser.add_argument('-clip', '--grad_clip', default=None, type=int, help='Allow gradient clipping')
+    #parser.add_argument('-clip', '--grad_clip', default=None, type=int, help='Allow gradient clipping')
 
     # Loss hyperparameters
     parser.add_argument('-npair', '--num_pairs', default=0, type=int, help='Number of pairs per sensitive drug per cell line')
@@ -91,17 +91,20 @@ def parse_args(args = None):
     parser.add_argument('--checkpointing', action='store_true', help='Whether to save model every `log_steps` epochs')
     
     # Misc
-    parser.add_argument('-cluster', '--cluster', action='store_true', help='additionally optimize hinge loss')
+    #parser.add_argument('-cluster', '--cluster', action='store_true', help='additionally optimize hinge loss')
     parser.add_argument('-classp', '--classify_pairs', action='store_true', help='additionally classify if two compounds in the pair has same class')
     parser.add_argument('-classc', '--classify_cmp', action='store_true', help='additionally classify if comp is +/-')
-    parser.set_defaults(do_train=True, do_test=True, use_features_only=True, cuda=True)
+    parser.set_defaults(do_train=True, do_test=True, cuda=True)
 
-    #parser.set_defaults(data_path='data2/ctrp/LCO/final_list_auc.txt',
-    #                    smiles_path='data2/ctrp/LCO/cmpd_id_name_group_smiles.txt',
-    #                    splits_path='data2/ctrp/LCO/splits/',
+    #parser.set_defaults(data_path='data2/ctrp/final_list_auc.txt',
+    #                    smiles_path='data2/ctrp/cmpd_smiles.txt',
+    #                    splits_path='data2/ctrp/LRO/splits.txt',
+    #                    #feature_gen='morgan_count',
+    #                    gnn='dmpn',
+    #                    setup=1,
     #                    model='listall')
     #parser.set_defaults(pretrained_ae=True)
-    #parser.set_defaults(trained_ae_path='/fs/ess/PCON0041/Vishal/DrugRank/expts/ae/20221102/ctrp/all_bs_32_outd_128/fold_0/')
+    #parser.set_defaults(trained_ae_path='../tmp/fold_0/')
     
     temp = parser.parse_args(args)
     args = override_args(temp)

@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.nn.utils import clip_grad_norm_
 
 from dataloader.loader import to_batchgraph
 from features.features_generators import *
@@ -12,6 +11,14 @@ from utils.common import pair2set
 import time
 
 def train_step_listnet(clobj, model, loader, criterion, optimizer, args):
+    """
+    train listwise models
+    `clobj`: cell line object
+    `model`: model object
+    `loader`: data loader
+    `criterion`: loss function
+    `optimizer`: optimizer  
+    """
     model.train()
     total_loss = 0
     iters, gnorm = 0, 0
@@ -29,6 +36,7 @@ def train_step_listnet(clobj, model, loader, criterion, optimizer, args):
 
         cl_emb = torch.from_numpy(np.array(clobj.get_expression(clids))).to(args.device)
 
+        # batch graph needed only for gnn models
         molgraph = to_batchgraph(mols) if args.gnn else None
 
         pred = model(cl_emb, cmp1=molgraph, smiles1=mols, feat1=features, output_type=0)
@@ -36,19 +44,29 @@ def train_step_listnet(clobj, model, loader, criterion, optimizer, args):
             batch_loss = criterion(pred, torch.tensor(aucs, device=pred.device))
         elif args.model == 'listall':
             batch_loss = criterion(pred.reshape(1,-1), torch.tensor(labels, device=pred.device).reshape(1,-1))
+        else:
+            raise ValueError('Invalid listwise model name')
         total_loss += batch_loss.item()
 
         batch_loss.backward()
         if (iters+1) == len(loader) or (iters+1)%args.gradient_steps==0:
             optimizer.step()
             gnorm = compute_gnorm(model)
-            #print(gnorm)
             model.zero_grad()
         iters += 1
 
     return total_loss/iters, gnorm
 
+
 def train_step(clobj, model, loader, criterion, optimizer, args):
+    """
+    train pairwise models
+    `clobj`: cell line object
+    `model`: model object
+    `loader`: data loader
+    `criterion`: loss function
+    `optimizer`: optimizer
+    """
     model.train()
     total_loss = 0
     iters, gnorm = 0, 0
@@ -76,50 +94,16 @@ def train_step(clobj, model, loader, criterion, optimizer, args):
         # y = 1 if both the comp in a pair are of same label, else 0
         y = torch.from_numpy(np.array(np.array(labels1) == np.array(labels2), dtype=int)).to(args.device)
 
-        if args.model == 'xattnet-n':  # node level update
-            pos, neg = None, None
-            ## create unique pairs to reduce overload
-            pairs2set = set()
-            for a,b in zip(mols1, mols2):
-                if (a,b) not in pairs2set:
-                    pairs2set.add((a,b))
-            pairs2set = list(pairs2set)
-            mols1 = [_[0] for _ in pairs2set]
-            mols2 = [_[1] for _ in pairs2set]
-            pos, neg = [], []
-            for d in batch:
-                pos.append(mols1.index(d[0].smiles))
-                neg.append(mols2.index(d[1].smiles))
-
-            molgraph1, molgraph2 = None, None
-            if (not args.use_features_only) and args.gnn:
-                #start = time.time()
-                molgraph1, molgraph2 = to_batchgraph(mols1), to_batchgraph(mols2)
-                #print(f'to batchgraph: Batch: {i} Time: {time.time()-start}')
-            #start = time.time()
-            pred_diff, plabel, clabel, cmp_sim = model(cl_emb, cmp1=molgraph1, smiles1=mols1, feat1=features1, \
-                                                cmp2=molgraph2, smiles2=mols2, feat2=features2, pos=pos, neg=neg)
-            #print(f'Forward pass: Batch: {i} Time: {time.time()-start}')
-
-
-        elif args.model == 'ranknet' or args.model == 'xattnet-g':
+        if args.model == 'pairpushc':
+            # to reduce call to batch and self.gnn, convert pairs to sets of graphs and features
             pos, neg, list_mols, list_features = pair2set(batch)
-            molgraph = None
-            if not args.use_features_only and args.gnn:
-                #start = time.time()
-                molgraph = to_batchgraph(list_mols)
-                #print(f'to batchgraph: Batch: {i} Time: {time.time()-start}')
-            #start = time.time()
-            pred_diff, plabel, clabel, cmp_sim = model(cl_emb, cmp1=molgraph, smiles1=list_mols, feat1=list_features, \
-                                                pos=pos, neg=neg) # reduce call to self.gnn
-            #print(f'Forward pass: Batch: {i} Time: {time.time()-start}')
-            """
-            if not args.use_features_only and args.gnn == 'dmpn':
-                molgraph1, molgraph2 = to_batchgraph(mols1), to_batchgraph(mols2)
-            pred_diff, plabel, clabel, _ = model(cl_emb, cmp1=molgraph1, smiles1=mols1, feat1=features1, \
-                            cmp2=molgraph2, smiles2=mols2, feat2=features2)
-            """
+            molgraph = to_batchgraph(list_mols) if args.gnn else None 
 
+            pred_diff, plabel, clabel, cmp_sim = model(cl_emb, cmp1=molgraph,
+                                                    smiles1=list_mols, feat1=list_features,
+                                                        pos=pos, neg=neg)
+        else:
+            raise ValueError('Invalid model name')
 
         batch_loss = 0
 
@@ -127,23 +111,20 @@ def train_step(clobj, model, loader, criterion, optimizer, args):
         if args.surrogate == 'logistic':
             # sign should be 1 if (+,-) pair and -1 if (-,+) pair
             batch_loss = torch.mean(criterion(-sign*pred_diff), dim=0)
-
-        elif args.surrogate == 'tcbb' or args.surrogate == 'tcbb1':
+        elif args.surrogate == 'tcbb':
             batch_loss = criterion(pred_diff, labels1, labels2, sign)
+        else:
+            raise ValueError('Invalid surrogate loss name')
 
-        elif args.surrogate == 'margin':
-            batch_loss += criterion(pred_diff, y, sign)
+        #elif args.surrogate == 'margin':
+        #    batch_loss += criterion(pred_diff, y, sign)
 
-        if args.cluster:
-            cr = HingeLoss(args.margin)
-            #hinge_loss = torch.mean(cr(torch.abs(pred_diff), y))
-            hinge_loss = torch.mean(cr(cmp_sim, y))
-            batch_loss += args.gamma*hinge_loss
-
+        # drug pair classification loss: not used in paper
         if args.classify_pairs:
             bce_loss = bce(plabel, y.float())
             batch_loss += bce_loss
 
+        # drug instance sensitivity classification loss
         if args.classify_cmp:
             clabel = clabel.flatten()
             labels = torch.Tensor(np.array(labels1 + labels2)).to(clabel.device)
@@ -153,15 +134,7 @@ def train_step(clobj, model, loader, criterion, optimizer, args):
         if args.regularization:
             batch_loss = batch_loss + args.regularization*compute_pnorm(model)**2
 
-        #start = time.time()
         batch_loss.backward()
-        #model.zero_grad()
-        #print(f'Backward pass: Batch: {i} Time: {time.time()-start}')
-        '''
-        if args.grad_clip:
-            clip_grad_norm_([p for p in model.parameters() if p.grad is not None], args.grad_clip)
-        '''
-
         if (iters+1) == len(loader) or (iters+1)%args.gradient_steps==0:
             optimizer.step()
             gnorm = compute_gnorm(model)

@@ -134,7 +134,6 @@ def train_ae(args):
                 best_score, best_epoch = ret, epoch
                 save_model(model, optim, args)
 
-    # should not save the best model on eval for setup2
     #if not args.use_all:
     #    save_model(model, optim, args)
     print(f'Best model saved for epoch {best_epoch}')
@@ -152,9 +151,10 @@ def parse_args():
     parser.add_argument('--ae_out_size', type=int, default=128)
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--bs', type=int, default=64)
-    parser.add_argument('--splits_path', default='/users/PAS1440/deyosu78/DrugRank/baselines/CCLERank/data/prism/setup2/fold_0/')
+    parser.add_argument('--splits_path', default='')
     parser.add_argument('--save_path', default='tmp/ae/')
     parser.add_argument('--use_all', action='store_true')
+    parser.add_argument('--dropout', type=float, default=0.1)
     parser.add_argument('--cuda', action='store_true')
     return parser.parse_args()
 

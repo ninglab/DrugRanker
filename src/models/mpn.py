@@ -22,7 +22,7 @@ class MPNN(nn.Module):
 		self.layers_per_message = 1
 		self.device = args.device
 		self.pooling = args.pooling
-		self.use_features_only = args.use_features_only
+		#self.use_features_only = args.use_features_only
 		self.feature_gen = args.feature_gen
 		self.agg_emb = args.agg_emb
 
@@ -206,9 +206,9 @@ class MPNN(nn.Module):
 		#readout
 		mol_vecs, node_scores = self.readout(atom_h, a_scope, mol_graph)
 
-		if self.feature_gen:
-			features_batch = torch.from_numpy(np.stack(features)).float().to(self.device) # type: ignore
-			mol_vecs = torch.cat([mol_vecs, features_batch], dim=1)
+		#if self.feature_gen:
+		#	features_batch = torch.from_numpy(np.stack(features)).float().to(self.device) # type: ignore
+		#	mol_vecs = torch.cat([mol_vecs, features_batch], dim=1)
 
 		return mol_vecs, node_scores
 

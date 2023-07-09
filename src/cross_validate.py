@@ -131,6 +131,7 @@ def run(model, dataset, train_index, test_index, threshold,
 
         early_stop.step(compute_pnorm(model))
 
+        # logging and evaluation at every `log_steps`
         if (epoch) and (epoch % args.log_steps == 0):
             # save models 
             if (epoch==args.max_iter) or (args.checkpointing and (epoch % 10 == 0)):
@@ -177,6 +178,11 @@ def run(model, dataset, train_index, test_index, threshold,
 
 
 def cross_validate(args, dataset, splits=None, thresholds=None):
+    """
+    Cross validate the model
+    `dataset` is a dictionary of `cell_ID, drug_ID: auc`  
+    `splits` is a list of dictionary with keys (train, test)
+    """
     args.device = torch.device("cuda:0" if torch.cuda.is_available() and args.cuda else "cpu")
 
     argparse_dict = vars(args)
@@ -210,10 +216,12 @@ def cross_validate(args, dataset, splits=None, thresholds=None):
             split = splits[fold]
             train_index, test_index = split['train'], split['test']
         else:
-            train_index, test_index = list(range(len(dataset)*4//5)), list(range(len(dataset)*4//5, len(dataset)))
+            # no splits provided, raise error
+            raise ValueError("No splits provided for cross-validation.")
+            #train_index, test_index = list(range(len(dataset)*4//5)), list(range(len(dataset)*4//5, len(dataset)))
 
         # initialize the model
-        if args.model in ['ranknet', 'listone', 'listall']:
+        if args.model in ['pairpushc', 'listone', 'listall']:
             model = RankNet(args)
         else:
             # many other models which were implemented but not used in the paper
@@ -228,6 +236,8 @@ def cross_validate(args, dataset, splits=None, thresholds=None):
             criterion = ListNetLoss()
         elif args.model == 'listall':
             criterion = AttLoss()
+        elif args.model == 'pairpushc':
+            criterion = TCBBLoss()
         else:
             ## many other models are implemented but not required for the workshop paper
             raise NotImplementedError 

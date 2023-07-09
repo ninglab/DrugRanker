@@ -27,9 +27,11 @@ fold=${11}
 gs=${12}
 dataset=${13}
 setup=${14}
+epoch=${15}
+alpha=${16}
 
-data_folder="data/${dataset}/LCO/"
-splits_path="${data_folder}/splits/"
+data_folder="data/${dataset}/"
+splits_path="${data_folder}/LCO/splits/"
 
 aebs=(32 32 16 16 32)
 aed=(128 32 64 128 128)
@@ -39,10 +41,14 @@ ae_dim=${aed[$fold]}
 ae_bs=${aebs[$fold]}
 ae_model="${ae_path}/all_bs_${ae_bs}_outd_${ae_dim}/fold_${fold}/"
 
-cmds="--data_path ${data_folder}/final_list_auc.txt --smiles_path ${data_folder}/cmpd_id_name_group_smiles.txt --splits_path ${splits_path} --save_path ${save_dir} --pretrained_ae -ae_path ${ae_model} -ae_outd ${ae_dim} -e 300 -mol_outd ${outd} -b ${bs} --cuda --model $model --delta $delta -score $score --setup $setup -gstep $gs"
+cmds="--data_path ${data_folder}/final_list_auc.txt --smiles_path ${data_folder}/cmpd_smiles.txt --splits_path ${splits_path} --save_path ${save_dir} --pretrained_ae -ae_path ${ae_model} -ae_outd ${ae_dim} -e $epoch -mol_outd ${outd} -b ${bs} --cuda --model $model --delta $delta -score $score --setup $setup -gstep $gs"
+
+if [[ $model == 'pairpushc' ]]; then
+	cmds="$cmds --alpha $alpha -classc"
+fi
 
 if [[ $fgen == 'morgan_count' ]]; then
-	python src/cross_validate.py $cmds -fgen $fgen --use_features_only --only_fold $fold > ${save_dir}/result_${fold}.txt
+	echo "python src/cross_validate.py $cmds -fgen $fgen --only_fold $fold > ${save_dir}/result_${fold}.txt"
 else
 	python src/cross_validate.py $cmds --pooling $pool --message_steps $depth --only_fold $fold > $save_dir/result_${fold}.txt
 fi
