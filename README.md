@@ -23,7 +23,7 @@ pip3 install torch=1.13.1 torchvision torchaudio --index-url https://download.py
 
 ## Datasets
 - Download CCLE gene expression data 22Q1 version from [here](https://ndownloader.figshare.com/files/34008404) and save it as `data/CCLE/CCLE_expression.csv`.
-- Please use the provided CTRP and PRISM datasets which are already processed. The processed datasets can be downloaded from [here](https://drive.google.com/file/d/1NzpOa0g0eA_Yk0lVdkn4tLABHgL7QqmS/view?usp=sharing). Unzip the `ctrp.zip` and `prism.zip` inside the `data` directory.
+- Please use the provided CTRP and PRISM datasets which are already processed. The processed datasets can be downloaded from [here](https://drive.google.com/drive/folders/1_w3_FSB0V4gzIdqku2enNfJIDeM5_pyO?usp=sharing). Unzip the `ctrp.zip` and `prism.zip` inside the `data` directory.
 - For $\mathtt{pLETORg}$, we selected and used a set of 464 genes (out of 19,177 genes in CCLE gene expression data) that are considered to be associated with cancer identified from the KEGG pathway (provided in `data/cancer_genes.csv`).
 - TODO: add instructions to process data from scratch.
 
