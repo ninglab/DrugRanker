@@ -2,7 +2,7 @@
 
 #SBATCH --tasks-per-node=1
 #SBATCH --gpus-per-node=1
-#SBATCH --time=12:00:00
+#SBATCH --time=40:00:00
 
 cd $SLURM_SUBMIT_DIR
 
@@ -10,45 +10,67 @@ pwd; hostname; date
 
 conda init bash
 . ~/.bashrc
-conda activate drugrank
 
 
 model=$1
 outd=$2
 bs=$3
-ae_path=$4
-ae_dim=$5
-fgen=$6
-save_dir=$7
-delta=${8}
-score=${9}
-depth=${10}
-fold=${11}
-gs=${12}
-dataset=${13}
-setup=${14}
-epoch=${15}
-alpha=${16}
+save_dir=$4
+fold=$5
+gs=$6
+dataset=$7
+setup=$8
+epoch=$9
+alpha=${10}
+m=${11}
+
+fgen="morgan_count"
+delta=5
+score="linear"
 
 data_folder="data/${dataset}/"
-splits_path="${data_folder}/LCO/splits/"
 
-aebs=(32 32 16 16 32)
-aed=(128 32 64 128 128)
+if [[ $setup == 'LCO' ]]; then
+	splits_path="${data_folder}/LCO/pletorg/"
+	ae_path="/fs/ess/PCON0041/Vishal/DrugRank/expts/ae/${setup}/${dataset}/" 
+	# change this to the path where the AE models are saved
+elif [[ $setup == 'LRO' ]]; then
+	splits_path="${data_folder}/LRO/"
+	ae_path="/fs/ess/PCON0041/Vishal/DrugRank/expts/ae/${setup}/"
+fi
 
+if [[ $dataset == "ctrp" ]]; then
+	aebs=(32 32 16 16 32)
+	aed=(128 32 64 128 128)
+elif [[ $dataset == "prism" ]]; then
+	aebs=(16 16 16 16 16)
+	aed=(128 32 32 32 128)
+fi
 
-ae_dim=${aed[$fold]}
-ae_bs=${aebs[$fold]}
-ae_model="${ae_path}/all_bs_${ae_bs}_outd_${ae_dim}/fold_${fold}/"
+for fold in $(seq 0 4); do
 
-cmds="--data_path ${data_folder}/final_list_auc.txt --smiles_path ${data_folder}/cmpd_smiles.txt --splits_path ${splits_path} --save_path ${save_dir} --pretrained_ae -ae_path ${ae_model} -ae_outd ${ae_dim} -e $epoch -mol_outd ${outd} -b ${bs} --cuda --model $model --delta $delta -score $score --setup $setup -gstep $gs"
+if [[ $setup == 'LCO' ]]; then
+	ae_dim=${aed[$fold]}
+	ae_bs=${aebs[$fold]}
+	ae_model="${ae_path}/all_bs_${ae_bs}_outd_${ae_dim}/fold_${fold}/model.pt"
+elif [[ $setup == 'LRO' ]]; then
+	ae_dim=128
+	ae_bs=64
+	ae_model="${ae_path}/all_bs_${ae_bs}_outd_${ae_dim}/model.pt"
+fi
+
+cmds="--data_path ${data_folder}/${setup}/aucs.txt --smiles_path ${data_folder}/cmpd_smiles.txt \
+ --splits_path ${splits_path} --save_path ${save_dir} --pretrained_ae -ae_path ${ae_model} -ae_outd ${ae_dim}\
+  -e $epoch -mol_outd ${outd} -b ${bs} --cuda --model $model --delta $delta -score $score --setup $setup -gstep $gs -M $m"
 
 if [[ $model == 'pairpushc' ]]; then
-	cmds="$cmds --alpha $alpha -classc"
+	cmds="$cmds --alpha $alpha -classc -npair 5"
 fi
 
 if [[ $fgen == 'morgan_count' ]]; then
-	echo "python src/cross_validate.py $cmds -fgen $fgen --only_fold $fold > ${save_dir}/result_${fold}.txt"
+	python src/cross_validate.py $cmds -fgen $fgen --only_fold $fold > ${save_dir}/result_${fold}.txt
 else
-	python src/cross_validate.py $cmds --pooling $pool --message_steps $depth --only_fold $fold > $save_dir/result_${fold}.txt
+	python src/cross_validate.py $cmds --pooling $pool --message_steps 3 --only_fold $fold > $save_dir/result_${fold}.txt
 fi
+
+done

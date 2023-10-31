@@ -1,4 +1,3 @@
-import sys
 import os
 import logging
 import json
@@ -8,13 +7,9 @@ from argparse import Namespace
 
 import torch
 import numpy as np
-from sklearn.metrics import ndcg_score
 from features.features_generators import *
 
 from rdkit import Chem, DataStructs
-from rdkit.Chem.Draw import rdMolDraw2D
-from rdkit.Chem.Draw import SimilarityMaps
-import matplotlib
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans, DBSCAN
@@ -79,7 +74,7 @@ def save_model(model, optimizer, args):
 
 def load_model(model, path, device):
     logging.info('Loading checkpoint %s...' % path)
-    checkpoint = torch.load(os.path.join(path, 'model.pt'), map_location=lambda storage, loc: storage)
+    checkpoint = torch.load(os.path.join(path), map_location=lambda storage, loc: storage)
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
 

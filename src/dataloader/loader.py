@@ -23,11 +23,11 @@ SMILES_TO_MOLS = {}
 class CellLine:
     def __init__(self, expression_file):
         self.expression = {}
-
+        sep = '\t' if 'Combined' in expression_file else ','
         with open(expression_file, 'r') as fp:
             next(fp)
             for line in fp.readlines():
-                tmp = line.strip().split(',')
+                tmp = line.strip().split(sep)
                 self.expression[tmp[0]] = np.array(tmp[1:], dtype=np.float32) # type: ignore
 
     def get_expression(self, ccl_ids):
@@ -68,7 +68,7 @@ def to_molgraph(data):
 
 class MoleculeDatasetTrain(Dataset):
     def __init__(self, data, delta=5, num_pairs=20, threshold=None,
-                pair_setting=1, sample_list=False, mixture=False):
+                pair_setting=1, sample_list=0, mixture=False):
         #self.molgraphs = 
         to_molgraph(data)
         # sometimes we use train data loader during testing, then no need to recompute threshold
@@ -96,7 +96,7 @@ class MoleculeDatasetTrain(Dataset):
         if self.pair_setting == -1:
             # no pairing in ListNet setting
             if self.sample_list:
-                pairs = self.sens[clid] + random.sample(self.insens[clid], 100)
+                pairs = self.sens[clid] + random.sample(self.insens[clid], self.sample_list)
             else:
                 pairs = self.sens[clid]+self.insens[clid]
         elif self.pair_setting == 0:

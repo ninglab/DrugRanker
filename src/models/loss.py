@@ -3,14 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as f
 import numpy as np
 
-class TCBBLoss(nn.Module):
-    def __init__(self, alpha=0.5, beta=0.1, gamma=0.1, margin=None):
-        super(TCBBLoss, self).__init__()
+class PairPushLoss(nn.Module):
+    def __init__(self, alpha=0.5, beta=0.1):
+        super(PairPushLoss, self).__init__()
         self.loss = nn.Softplus(beta=1, threshold=50)
         self.relu = nn.ReLU()
         self.alpha = alpha
         self.beta = beta
-        self.gamma = gamma
+        #self.gamma = gamma
 
     def forward(self, diff, labels1, labels2, sign):
         y = np.array(labels1) == np.array(labels2)
@@ -29,22 +29,24 @@ class TCBBLoss(nn.Module):
         return bloss
 
 
-class ListNetLoss(nn.Module):
-    def __init__(self):
-        super(ListNetLoss, self).__init__()
+class ListOneLoss(nn.Module):
+    def __init__(self, M=1):
+        super(ListOneLoss, self).__init__()
+        self.M = M
 
     def forward(self, y_pred, y_true):
-        pred_max = f.softmax(y_pred, dim=0) + 1e-9
-        true_max = f.softmax(-y_true, dim=0)  # need to reverse the sign
+        pred_max = f.softmax(y_pred/self.M, dim=0) + 1e-9
+        true_max = f.softmax(-y_true/self.M, dim=0)  # need to reverse the sign
         pred_log = torch.log(pred_max)
         return torch.mean(-torch.sum(true_max*pred_log))
 
 
-class AttLoss(nn.Module):
-    def __init__(self):
-        super(AttLoss, self).__init__()
+class ListAllLoss(nn.Module):
+    def __init__(self, M=0.5):
+        super(ListAllLoss, self).__init__()
+        self.M = M
 
     def forward(self, y_pred, y_label):
-        pred_max = f.softmax(y_pred/0.5, dim=1) + 1e-9
+        pred_max = f.softmax(y_pred/self.M, dim=1) + 1e-9
         pred_log = torch.log(pred_max)
         return torch.mean(-torch.sum(y_label*pred_log))

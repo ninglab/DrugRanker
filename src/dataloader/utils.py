@@ -6,45 +6,15 @@ import numpy as np
 from scipy import stats
 from collections import defaultdict
 
-def get_auc_data(auc_file, smiles_file):
-    cpdid_smiles = get_data_from_smiles(smiles_file)
-
-    df = pd.read_csv(auc_file)
-
-    data = [(cpdid_smiles[str(b)], a, c) for a,b,c in zip(df['broadid'], df['cpdid'], df['auc'])]
-    return data
-
-
-def get_data_setup2(auc_file, splits_file, smiles_file):
-    train_ids, test_ids = set(), set()
-
-    cpdid_smiles = get_data_from_smiles(smiles_file)
-    # read train and test cell line IDs
-    with open(splits_file, 'r') as fp:
-        tmp = fp.readlines()[0].strip().split('\t')
-        train_ids = set(tmp[0].strip().split(','))
-        test_ids = set(tmp[1].strip().split(','))
-
-    train_auc, test_auc = [], []
-    # store {(cell, cpd) = auc}
-    with open(auc_file, 'r') as fp:
-        next(fp)
-        for line in fp.readlines():
-            tmp = line.strip().split(',')
-            if tmp[0] in train_ids:
-                train_auc.append((cpdid_smiles[tmp[1]], tmp[0], tmp[2]))
-            if tmp[0] in test_ids:
-                test_auc.append((cpdid_smiles[tmp[1]], tmp[0], tmp[2]))
-    return train_auc, test_auc
 
 def get_auc(auc_file):
     set_clids = set()
 
-    sep = '\t' if 'prism' in auc_file else ','
+    sep = '\t' if ('prism' in auc_file or 'ctrpv2' in auc_file) else ','
     auc = {}
     # store {(cell, cpd) = auc}
     with open(auc_file, 'r') as fp:
-        next(fp)
+        #next(fp)
         for line in fp.readlines():
             tmp = line.strip().split(sep)
             set_clids.add(tmp[0])
@@ -52,29 +22,34 @@ def get_auc(auc_file):
     return auc, set_clids
 
 
-def get_cv_data_setup1(auc_file, splits_file):
+def get_cv_data_LRO(auc_file, splits_dir):
 
     auc, set_clids = get_auc(auc_file)
+    set_clids = np.genfromtxt(os.path.join(splits_dir, 'cells.txt'), delimiter='\n', dtype=str)
+    threshold_pc = {}
     # store train and test cpd ids per fold per cell line
     indices_pc = {}
     for k in range(5):
         indices_pc[k] = dict()
         indices_pc[k]['train'] = dict.fromkeys(set_clids)
+        indices_pc[k]['val'] = dict.fromkeys(set_clids)
         indices_pc[k]['test']  = dict.fromkeys(set_clids)
+        thresholds = np.genfromtxt(os.path.join(splits_dir, f'pletorg/fold_{k}/rel.txt'), delimiter='\n')
+        threshold_pc[k] = dict(zip(set_clids, thresholds))
 
-
-    sep = '|' if 'prism' in auc_file else ','
-    with open(splits_file, 'r') as fp:
+    sep = '|'
+    with open(os.path.join(splits_dir, 'splits.txt'), 'r') as fp:
         for line in fp.readlines():
             tmp = line.strip().split('\t')
             if tmp[0] not in set_clids:
                 continue
             indices_pc[int(tmp[1])]['train'][tmp[0]] = tmp[2].split(sep)
-            indices_pc[int(tmp[1])]['test'][tmp[0]] = tmp[3].split(sep)
-    return auc, indices_pc
+            indices_pc[int(tmp[1])]['val'][tmp[0]] = tmp[3].split(sep)
+            indices_pc[int(tmp[1])]['test'][tmp[0]] = tmp[4].split(sep)
+    return auc, indices_pc, threshold_pc
 
 
-def get_cv_data_setup2(auc_file, splits_dir):
+def get_cv_data_LCO(auc_file, splits_dir):
     auc, set_clids = get_auc(auc_file)
     # store train and test cpd ids per fold per cell line
     indices_pc = {}
@@ -83,43 +58,52 @@ def get_cv_data_setup2(auc_file, splits_dir):
         indices_pc[k] = dict()
         threshold_pc[k] = dict()
         indices_pc[k]['train'] = np.genfromtxt(splits_dir+f'fold_{k}/train_cells.txt', delimiter='\n', dtype=str)
+        indices_pc[k]['val'] = np.genfromtxt(splits_dir+f'fold_{k}/val_cells.txt', delimiter='\n', dtype=str)
         indices_pc[k]['test'] = np.genfromtxt(splits_dir+f'fold_{k}/test_cells.txt', delimiter='\n', dtype=str)
         threshold = np.genfromtxt(splits_dir+f'fold_{k}/train_rel.txt')
         threshold_pc[k]['train'] = dict(zip(indices_pc[k]['train'].tolist(), threshold.tolist()))
+        threshold = np.genfromtxt(splits_dir+f'fold_{k}/val_rel.txt')
+        threshold_pc[k]['val'] = dict(zip(indices_pc[k]['val'].tolist(), threshold.tolist()))
         threshold = np.genfromtxt(splits_dir+f'fold_{k}/test_rel.txt')
         threshold_pc[k]['test'] = dict(zip(indices_pc[k]['test'].tolist(), threshold.tolist()))
 
     return auc, indices_pc, threshold_pc
 
 
-def get_fold_data_setup1(auc, train_index, test_index, smiles_file):
+def get_fold_data_LRO(auc, train_index, val_index, test_index, smiles_file):
     """ get smiles and auc data from the indices for a particular CV run """
     cpdid_smiles = get_data_from_smiles(smiles_file)
 
-    train_auc, test_auc = [], []
+    train_auc, val_auc, test_auc = [], [], []
 
     for cell, train_cpd in train_index.items():
         train_auc.extend([(cpdid_smiles[cpd], cell, auc[(cell, cpd)], cpd) for cpd in train_cpd])
+    
+    for cell, val_cpd in val_index.items():
+        val_auc.extend([(cpdid_smiles[cpd], cell, auc[(cell, cpd)], cpd) for cpd in val_cpd])
 
     for cell, test_cpd in test_index.items():
         test_auc.extend([(cpdid_smiles[cpd], cell, auc[(cell, cpd)], cpd) for cpd in test_cpd])
 
-    return train_auc, test_auc
+    return train_auc, val_auc, test_auc
 
 
-def get_fold_data_setup2(auc, train_index, test_index, smiles_file):
+def get_fold_data_LCO(auc, train_index, val_index, test_index, smiles_file):
     """ get smiles and auc data from the indices for a particular CV run """
     cpdid_smiles = get_data_from_smiles(smiles_file)
 
-    train_auc, test_auc = [], []
+    train_auc, val_auc, test_auc = [], [], []
 
     for cell in train_index:
         train_auc += [(cpdid_smiles[cpd], cell, auc[(cell, cpd)], cpd) for cpd in cpdid_smiles if (cell,cpd) in auc]
 
+    for cell in val_index:
+        val_auc += [(cpdid_smiles[cpd], cell, auc[(cell, cpd)], cpd) for cpd in cpdid_smiles if (cell,cpd) in auc]
+
     for cell in test_index:
         test_auc += [(cpdid_smiles[cpd], cell, auc[(cell, cpd)], cpd) for cpd in cpdid_smiles if (cell,cpd) in auc]
 
-    return train_auc, test_auc
+    return train_auc, val_auc, test_auc
 
 def get_data_from_smiles(smiles_file):
     smiles_dict = {}
@@ -130,27 +114,6 @@ def get_data_from_smiles(smiles_file):
             smiles_dict[tmp[0]] = tmp[-1]
 
     return smiles_dict
-
-
-def get_data_labels(data, bins=100):
-    values = [float(_[1]) for _ in data]
-    percentile = np.array([stats.percentileofscore(values, _) for _ in values])
-    bins_percentile = list(range(0, 101, int(100/bins)))
-    labels = np.digitize(percentile, bins_percentile, right=True)
-
-    return labels
-
-
-def get_ctrp_data(filename):
-    df = pd.read_csv(filename)
-    clid = 'ACH-000140'
-    return [(a,clid,b) for a,b in zip(df['cpd_smiles'], df['auc'])]
-
-def get_demo_data(auc_file='data/demo/ACH-000882.txt', smiles_file='data/test/cmpd_id_name_group_smiles.txt'):
-    cpdid_smiles = get_data_from_smiles(smiles_file)
-    df = pd.read_csv(auc_file)
-    data = [(cpdid_smiles[str(b)], a, c, b) for a,b,c in zip(df['broadid'], df['cpdid'], df['auc'])]
-    return data
 
 
 def get_thresholds(molecules, delta=5):

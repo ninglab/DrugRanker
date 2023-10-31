@@ -1,30 +1,28 @@
 #!/bin/bash
 
-log_dir='/fs/ess/scratch/PCON0041/Vishal/expts/rank/' # change this to the path where the results will be saved
-
 outd=(25 50 100)
-gsteps=(4 16 64)
-outd_ae=(128)
-
+gsteps=(4 16 32 64)
 model="listall" # List-All in the paper
-fgen="morgan_count"
 bs=1
+dataset=("ctrp" "prism")
+setups=("LRO" "LCO")
 score="linear"
-dataset="ctrp"
-setup=2
-del=5
 
-ae_expt_dir="/fs/ess/PCON0041/Vishal/DrugRank/expts/ae/LCO/${dataset}/"  # change this to the path where the AE models are saved
-
-for aed in ${outd_ae[@]}; do
-	for mold in ${outd[@]}; do
-		for gs in ${gsteps[@]}; do
-			expt_dir="${log_dir}/${dataset}/tmp/setup${setup}/del_${del}/${model}/${fgen}/"
-			save_dir="${expt_dir}/${mold}_2_${gs}_${score}/"
-			mkdir -p $save_dir ${expt_dir}/slurm/ 
+for setup in ${setups[@]}; do
+	for data in ${dataset[@]}; do
+		log_dir="/fs/ess/scratch/PCON0041/Vishal/DrugRank/expts/rank/${data}/20230902-${setup}/del_5/"
+		# change this to the path where the results will be saved
+		for mold in ${outd[@]}; do
+			for gs in ${gsteps[@]}; do
+				expt_dir="${log_dir}/${model}/"
+				for M in 0.1 10; do
+				save_dir="${expt_dir}/${mold}_2_${gs}_${score}_${M}/"
+				mkdir -p $save_dir ${expt_dir}/slurm/ 
 			
-			for fold in $(seq 0 4); do
-				sbatch -A PCON0041 --output=${expt_dir}/slurm/%j.log scripts/evaluate.pbs $model $mold $bs ${ae_expt_dir} $aed $fgen $save_dir $del $score 2 $fold $gs $dataset $setup 300
+				sbatch -A PCON0041 --output=${expt_dir}/slurm/%j.log scripts/evaluate.pbs \
+				$model $mold $bs $save_dir -1 $gs $data $setup 100 0.1 $M
+				#bash scripts/evaluate.pbs $model $mold $bs $save_dir -1 $gs $data $setup 50 0.1 $M
+				done
 			done
 		done
 	done

@@ -52,7 +52,7 @@ def train_step_listnet(clobj, model, loader, criterion, optimizer, args):
         if (iters+1) == len(loader) or (iters+1)%args.gradient_steps==0:
             optimizer.step()
             gnorm = compute_gnorm(model)
-            model.zero_grad()
+            optimizer.zero_grad()
         iters += 1
 
     return total_loss/iters, gnorm

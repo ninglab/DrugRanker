@@ -20,14 +20,14 @@ def parse_args(args = None):
     parser.add_argument('--cuda', action = 'store_true', help = 'use GPU')
     parser.add_argument('--kfold', type=int, default=5)
     parser.add_argument('--only_fold', type=int, default=-1)
-    parser.add_argument('--setup', type=int, default=2)
+    parser.add_argument('--setup', type=str, default='LCO', choices=['LCO', 'LRO'])
 
     # Model and features
-    parser.add_argument('--model', type=str, default='ranknet',
+    parser.add_argument('--model', type=str, default='listall',
                         choices=['pairpushc', 'listone', 'listall'])
     parser.add_argument('--gnn', type=str,
                         choices=['dmpn'])
-    parser.add_argument('-fgen', '--feature_gen', default=None, choices=['morgan', 'morgan_count',
+    parser.add_argument('-fgen', '--feature_gen', default='morgan_count', choices=['morgan', 'morgan_count',
                         'morgan_tanimoto_bioassay', 'rdkit_2d', 'rdkit_2d_normalized'],
                         help='Without `use_features_only`, this will concat molecule level features to learned gnn emb')
     #parser.add_argument('-fonly', '--use_features_only', action='store_true', help='use only features for baselines')
@@ -35,13 +35,15 @@ def parse_args(args = None):
     # Training and testing
     parser.add_argument('--do_train', action='store_true', help='Train the model?')
     parser.add_argument('--do_comb_eval', action='store_true', help='Evaluating on both train+test drugs in 1st setting')
-    parser.add_argument('--do_test', action='store_true', help='Test the model?')
+    #parser.add_argument('--do_test', action='store_true', help='Test the model?')
     parser.add_argument('--do_train_eval', action='store_true', help='Evaluating on training data')
     
     # Data
     parser.add_argument('--data_path', type=str, help='Path to the cell,drug,AUC list')
     parser.add_argument('--smiles_path', type=str, help='Path to the drug-smiles mapping')
     parser.add_argument('--splits_path', type=str, help='Path to the CV split indices')
+    parser.add_argument('--genexp_path', type=str, help='Path to the gene expression data',
+                        default='/fs/ess/PCON0041/Vishal/DrugRank/data/CCLE/CCLE_expression.csv')
 
     # Model architecture
     parser.add_argument('-mol_outd', '--mol_out_size', default=50, type=int)
@@ -70,16 +72,16 @@ def parse_args(args = None):
     parser.add_argument('-lr', '--learning_rate', default=1e-3, type=float, help='Learning rate')
     parser.add_argument('-e', '--max_iter', default=100, type=int, help='Num of epochs')
     parser.add_argument('-b', '--batch_size', default=1, type=int, help='Batch size')
-    #parser.add_argument('-clip', '--grad_clip', default=None, type=int, help='Allow gradient clipping')
+    #parser.add_argument('-clip', '--grad_clip', default=100, type=int, help='Allow gradient clipping')
 
     # Loss hyperparameters
     parser.add_argument('-npair', '--num_pairs', default=0, type=int, help='Number of pairs per sensitive drug per cell line')
     parser.add_argument('-mix', '--mixture', action='store_true', help='Whether to input ordered or mix ordered pairs')
     parser.add_argument('-A', '--alpha', default=0.5, type=float, help='Trade-off for TCBB loss (equ 6)')
     parser.add_argument('-B', '--beta', default=0.1, type=float, help='Trade-off for TCBB loss (equ 6)')
-    parser.add_argument('-G', '--gamma', default=0.5, type=float, help='Trade-off for margin-based loss in clustering')
-    parser.add_argument('-K', default=1, type=int, help='K for maximing AP@K')
-    parser.add_argument('-sample_list', action=argparse.BooleanOptionalAction, help='sample list for each query in listwise ranking') # type: ignore
+    #parser.add_argument('-G', '--gamma', default=0.5, type=float, help='Trade-off for margin-based loss in clustering')
+    parser.add_argument('-M', default=1, type=float, help='Softmax temperature')
+    parser.add_argument('-sample_list', default=0, help='sample list for each query in listwise ranking') # type: ignore
 
     # Pretrained models
     parser.add_argument('--pretrained_ae', action='store_true', help='whether using pretrained cell line AE')
@@ -87,24 +89,24 @@ def parse_args(args = None):
 
     # Saving and logging
     parser.add_argument('--log_steps', default=5, type=int, help='log evaluation results every 5 epochs')
-    parser.add_argument('--save_path', default='../tmp', type=str)
+    parser.add_argument('--save_path', default='../tmp/', type=str)
     parser.add_argument('--checkpointing', action='store_true', help='Whether to save model every `log_steps` epochs')
     
     # Misc
     #parser.add_argument('-cluster', '--cluster', action='store_true', help='additionally optimize hinge loss')
     parser.add_argument('-classp', '--classify_pairs', action='store_true', help='additionally classify if two compounds in the pair has same class')
     parser.add_argument('-classc', '--classify_cmp', action='store_true', help='additionally classify if comp is +/-')
-    parser.set_defaults(do_train=True, do_test=True, cuda=True)
+    parser.set_defaults(do_train=True, cuda=True)
 
-    #parser.set_defaults(data_path='data2/ctrp/final_list_auc.txt',
-    #                    smiles_path='data2/ctrp/cmpd_smiles.txt',
-    #                    splits_path='data2/ctrp/LRO/splits.txt',
-    #                    #feature_gen='morgan_count',
+    parser.set_defaults(data_path='data/ctrpv2/LRO/aucs.txt',
+                        smiles_path='data/ctrpv2/cmpd_smiles.txt',
+                        splits_path='data/ctrpv2/LRO/',
+                        feature_gen='morgan_count',
     #                    gnn='dmpn',
-    #                    setup=1,
-    #                    model='listall')
+                        setup='LRO',
+                        model='pairpushc', num_pairs=10)
     #parser.set_defaults(pretrained_ae=True)
-    #parser.set_defaults(trained_ae_path='../tmp/fold_0/')
+    #parser.set_defaults(trained_ae_path='/fs/ess/PCON0041/Vishal/DrugRank/expts/ae/LRO/all_bs_64_outd_128/model.pt')
     
     temp = parser.parse_args(args)
     args = override_args(temp)
