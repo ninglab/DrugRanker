@@ -138,6 +138,7 @@ def compute_AP(pred_ranks, labels, K=10):
     if deno == 0:
         return 0
     # eq 10
+    K = min(K, len(pred_ranks))
     for j in range(1, K+1):
         # compute precision for every kth position (1..K)
         ap += compute_precision(pred_ranks, labels, j)*labels[pred_ranks[j-1]]

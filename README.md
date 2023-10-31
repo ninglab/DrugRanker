@@ -23,10 +23,10 @@ pip3 install torch=1.13.1 torchvision torchaudio --index-url https://download.py
 ````
 
 ## Datasets
-- Download CCLE gene expression data 22Q1 version from [here](https://ndownloader.figshare.com/files/34008404) and save it as `data/CCLE/CCLE_expression.csv`.
-- Please use the provided CTRP and PRISM datasets which are already processed. The processed datasets can be downloaded from [here](https://drive.google.com/drive/folders/1_w3_FSB0V4gzIdqku2enNfJIDeM5_pyO?usp=sharing). Unzip the `ctrp.zip` and `prism.zip` inside the `data` directory.
-- For $\mathtt{pLETORg}$, we selected and used a set of M genes (out of 19,177 genes in CCLE gene expression data) using Elastic Net.
-- TODO: add instructions to process data from scratch.
+- CCLE: Download CCLE expression data from [here](https://ndownloader.figshare.com/files/34008404) and save it as `data/CCLE/CCLE_expression.csv`.
+- Combined: Download the `combined_rnaseq_data` file with gene expression data for cell lines renamed for CTRPv2 from [here](https://modac.cancer.gov/assetDetails?dme_data_id=NCI-DME-MS01-8088592) and save it in `Combined/`.
+- Please use the provided CTRP (with adjusted AUCs) and PRISM datasets which are already processed. The processed datasets can be downloaded from [here](https://drive.google.com/drive/folders/1_w3_FSB0V4gzIdqku2enNfJIDeM5_pyO?usp=sharing). Unzip the `ctrpv2.zip` and `prism.zip` inside the `data` directory.
+- TODO: add instructions to process data from scratch in `data/README.md` (INCOMPLETE).
 
 ## Experiments
 
@@ -39,21 +39,21 @@ pip3 install torch=1.13.1 torchvision torchaudio --index-url https://download.py
 Run the below code to train $\mathtt{List\text{-}One}$ with default hyper-parameters
 
 ```
-export DATA_FOLDER="data/ctrp/"
+export DATA_FOLDER="data/ctrpv2/"
 python src/cross_validate.py --model listone --data_path $DATA_FOLDER/LCO/aucs.txt --smiles_path $DATA_FOLDER/cmpd_smiles.txt --splits_path $DATA_FOLDER/LCO/pletorg/ --pretrained_ae -ae_path ${ae_path} -fgen morgan_count --setup LCO
 ```
 
 Run the below code to train $\mathtt{List\text{-}All}$ with default hyper-parameters
 
 ```
-export DATA_FOLDER="data/ctrp/"
+export DATA_FOLDER="data/ctrpv2/"
 python src/cross_validate.py --model listall --data_path $DATA_FOLDER/LCO/aucs.txt --smiles_path $DATA_FOLDER/cmpd_smiles.txt --splits_path $DATA_FOLDER/LCO/pletorg/ --pretrained_ae -ae_path ${ae_path} -fgen morgan_count -M 0.5 --setup LCO
 ```
 
 Run the below code to train $\mathtt{Pair\text{-}PushC}$ with default hyper-parameters
 
 ```
-export DATA_FOLDER="data/ctrp/"
+export DATA_FOLDER="data/ctrpv2/"
 python src/cross_validate.py --model pairpushc --data_path $DATA_FOLDER/LCO/aucs.txt --smiles_path $DATA_FOLDER/cmpd_smiles.txt --splits_path $DATA_FOLDER/LCO/pletorg/ --pretrained_ae -ae_path ${ae_path} -classc -fgen morgan_count --setup LCO
 ```
 where ${ae_path} should be the path to the directory containing the saved models.
@@ -64,7 +64,8 @@ where ${ae_path} should be the path to the directory containing the saved models
 - `splits_path` specifies the path to the directory containing the folds, where each fold is saved as a directory.
 - `ae_path` specifies the path to the directory containing the pretrained $\mathtt{GeneAE}$ model.
 - check `utils/args.py` for other hyper-parameters.
-- Use `export DATA_FOLDER="data/prism/"` for all experiments on PRISM dataset. 
+- Use `export DATA_FOLDER="data/ctrpv2/"` and change `ae_ind` to 17743 and `ae_path` to `data/Combined/combined_rnaseq_data` for all experiments on CTRP dataset.
+- Use `export DATA_FOLDER="data/prism/"` and change `ae_ind` to 19177 and `ae_path` to `data/CCLE/CCLE_expression.csv` for all experiments on PRISM dataset.
 - change the `splits_path` to `$DATA_FOLDER/LRO/`, `data_path` to `$DATA_FOLDER/LRO/aucs.txt` and `setup=LRO` for the LRO experiments.
 
 Check the following scripts for hyper-parameter grid-search and cross-validation:

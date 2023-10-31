@@ -27,10 +27,11 @@ def read_gene_exp(file):
     `file` is a csv file with first column as cell ID and rest as expression values
     """
     exp = {}   # cell_id -> expression
+    sep = '\t' if 'Combined' in file else ','
     with open(file, 'r') as fp:
         next(fp)
         for line in fp.readlines():
-            tmp = line.strip().split(',')
+            tmp = line.strip().split(sep)
             exp[tmp[0]] = np.array(tmp[1:], dtype=np.float32) # type: ignore
     return exp
 
@@ -40,7 +41,7 @@ def read_splits(splits_path):
     Read train and test cell IDs from file
     """
     train_ids = np.genfromtxt(splits_path+'train_cells.txt', dtype=str) # type: ignore
-    test_ids = np.genfromtxt(splits_path+'test_cells.txt', dtype=str) # type: ignore
+    test_ids = np.genfromtxt(splits_path+'val_cells.txt', dtype=str) # type: ignore
     return train_ids, test_ids
 
 

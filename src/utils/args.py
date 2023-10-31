@@ -98,13 +98,13 @@ def parse_args(args = None):
     parser.add_argument('-classc', '--classify_cmp', action='store_true', help='additionally classify if comp is +/-')
     parser.set_defaults(do_train=True, cuda=True)
 
-    parser.set_defaults(data_path='data/ctrpv2/LRO/aucs.txt',
-                        smiles_path='data/ctrpv2/cmpd_smiles.txt',
-                        splits_path='data/ctrpv2/LRO/',
-                        feature_gen='morgan_count',
+    #parser.set_defaults(data_path='data/ctrpv2/LRO/aucs.txt',
+    #                    smiles_path='data/ctrpv2/cmpd_smiles.txt',
+    #                    splits_path='data/ctrpv2/LRO/',
+    #                    feature_gen='morgan_count',
     #                    gnn='dmpn',
-                        setup='LRO',
-                        model='pairpushc', num_pairs=10)
+    #                    setup='LRO',
+    #                    model='pairpushc', num_pairs=10)
     #parser.set_defaults(pretrained_ae=True)
     #parser.set_defaults(trained_ae_path='/fs/ess/PCON0041/Vishal/DrugRank/expts/ae/LRO/all_bs_64_outd_128/model.pt')
     
