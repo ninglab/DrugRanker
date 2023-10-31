@@ -29,6 +29,9 @@ delta=5
 score="linear"
 
 data_folder="data/${dataset}/"
+gexp_file="data/CCLE/CCLE_expression.csv"
+ae_ind=19177
+
 
 if [[ $setup == 'LCO' ]]; then
 	splits_path="${data_folder}/LCO/pletorg/"
@@ -42,6 +45,8 @@ fi
 if [[ $dataset == "ctrp" ]]; then
 	aebs=(32 32 16 16 32)
 	aed=(128 32 64 128 128)
+	ae_ind=17743
+	gexp_file="data/Combined/combined_rnaseq_data"
 elif [[ $dataset == "prism" ]]; then
 	aebs=(16 16 16 16 16)
 	aed=(128 32 32 32 128)
@@ -59,8 +64,8 @@ elif [[ $setup == 'LRO' ]]; then
 	ae_model="${ae_path}/all_bs_${ae_bs}_outd_${ae_dim}/model.pt"
 fi
 
-cmds="--data_path ${data_folder}/${setup}/aucs.txt --smiles_path ${data_folder}/cmpd_smiles.txt \
- --splits_path ${splits_path} --save_path ${save_dir} --pretrained_ae -ae_path ${ae_model} -ae_outd ${ae_dim}\
+cmds="--data_path ${data_folder}/${setup}/aucs.txt --smiles_path ${data_folder}/cmpd_smiles.txt --genexp_path ${gexp_file} \
+ --splits_path ${splits_path} --save_path ${save_dir} --pretrained_ae -ae_path ${ae_model} -ae_outd ${ae_dim} -ae_ind ${ae_ind} \
   -e $epoch -mol_outd ${outd} -b ${bs} --cuda --model $model --delta $delta -score $score --setup $setup -gstep $gs -M $m"
 
 if [[ $model == 'pairpushc' ]]; then
