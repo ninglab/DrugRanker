@@ -16,15 +16,16 @@ Install packages under conda environments
 ```
 conda create -n drugrank python=3.9
 conda activate drugrank
-conda install -y -c rdkit rdkit=2022.9.3
-conda install -y numpy=1.22.3 scipy=1.8.1
+conda install -y -c rdkit rdkit=2023.03.3
+conda install -y numpy=1.26.0 scipy=1.9.1
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
 pip3 install torch=1.13.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu116
 ````
 
 ## Datasets
 - Download CCLE gene expression data 22Q1 version from [here](https://ndownloader.figshare.com/files/34008404) and save it as `data/CCLE/CCLE_expression.csv`.
 - Please use the provided CTRP and PRISM datasets which are already processed. The processed datasets can be downloaded from [here](https://drive.google.com/drive/folders/1_w3_FSB0V4gzIdqku2enNfJIDeM5_pyO?usp=sharing). Unzip the `ctrp.zip` and `prism.zip` inside the `data` directory.
-- For $\mathtt{pLETORg}$, we selected and used a set of 464 genes (out of 19,177 genes in CCLE gene expression data) that are considered to be associated with cancer identified from the KEGG pathway (provided in `data/cancer_genes.csv`).
+- For $\mathtt{pLETORg}$, we selected and used a set of M genes (out of 19,177 genes in CCLE gene expression data) using Elastic Net.
 - TODO: add instructions to process data from scratch.
 
 ## Experiments
@@ -39,21 +40,21 @@ Run the below code to train $\mathtt{List\text{-}One}$ with default hyper-parame
 
 ```
 export DATA_FOLDER="data/ctrp/"
-python src/cross_validate.py --model listone --data_path $DATA_FOLDER/final_list_auc.txt --smiles_path $DATA_FOLDER/cmpd_smiles.txt --splits_path $DATA_FOLDER/LCO/splits/ --pretrained_ae -ae_path ${ae_path} -fgen morgan_count
+python src/cross_validate.py --model listone --data_path $DATA_FOLDER/LCO/aucs.txt --smiles_path $DATA_FOLDER/cmpd_smiles.txt --splits_path $DATA_FOLDER/LCO/pletorg/ --pretrained_ae -ae_path ${ae_path} -fgen morgan_count --setup LCO
 ```
 
 Run the below code to train $\mathtt{List\text{-}All}$ with default hyper-parameters
 
 ```
 export DATA_FOLDER="data/ctrp/"
-python src/cross_validate.py --model listall --data_path $DATA_FOLDER/final_list_auc.txt --smiles_path $DATA_FOLDER/cmpd_smiles.txt --splits_path $DATA_FOLDER/LCO/splits/ --pretrained_ae -ae_path ${ae_path} -fgen morgan_count
+python src/cross_validate.py --model listall --data_path $DATA_FOLDER/LCO/aucs.txt --smiles_path $DATA_FOLDER/cmpd_smiles.txt --splits_path $DATA_FOLDER/LCO/pletorg/ --pretrained_ae -ae_path ${ae_path} -fgen morgan_count -M 0.5 --setup LCO
 ```
 
 Run the below code to train $\mathtt{Pair\text{-}PushC}$ with default hyper-parameters
 
 ```
 export DATA_FOLDER="data/ctrp/"
-python src/cross_validate.py --model pairpushc --data_path $DATA_FOLDER/final_list_auc.txt --smiles_path $DATA_FOLDER/cmpd_smiles.txt --splits_path $DATA_FOLDER/LCO/splits/ --pretrained_ae -ae_path ${ae_path} -classc -fgen morgan_count
+python src/cross_validate.py --model pairpushc --data_path $DATA_FOLDER/LCO/aucs.txt --smiles_path $DATA_FOLDER/cmpd_smiles.txt --splits_path $DATA_FOLDER/LCO/pletorg/ --pretrained_ae -ae_path ${ae_path} -classc -fgen morgan_count --setup LCO
 ```
 where ${ae_path} should be the path to the directory containing the saved models.
 
@@ -64,10 +65,9 @@ where ${ae_path} should be the path to the directory containing the saved models
 - `ae_path` specifies the path to the directory containing the pretrained $\mathtt{GeneAE}$ model.
 - check `utils/args.py` for other hyper-parameters.
 - Use `export DATA_FOLDER="data/prism/"` for all experiments on PRISM dataset. 
-- change the `splits_path` to `$DATA_FOLDER/LRO/splits.txt` and `setup=1` for the LRO experiments.
+- change the `splits_path` to `$DATA_FOLDER/LRO/`, `data_path` to `$DATA_FOLDER/LRO/aucs.txt` and `setup=LRO` for the LRO experiments.
 
 Check the following scripts for hyper-parameter grid-search and cross-validation:
 - `scripts/run_listone.sh` for $\mathtt{List\text{-}One}$.
 - `scripts/run_listall.sh` for $\mathtt{List\text{-}All}$.
-- These scripts only show the settings for LCO experiments. The `ae_expt_dir`, `splits_path`, `setup` bash variables within these scripts need to be changed accordingly as discussed above.
-
+- `scripts/run_pairpushc.sh` for $\mathtt{Pair\text{-}PushC}$.
