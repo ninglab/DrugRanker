@@ -25,8 +25,8 @@ pip3 install torch=1.13.1 torchvision torchaudio --index-url https://download.py
 ## Datasets
 - CCLE: Download CCLE expression data from [here](https://ndownloader.figshare.com/files/34008404) and save it as `data/CCLE/CCLE_expression.csv`.
 - Combined: Download the `combined_rnaseq_data` file with gene expression data for cell lines renamed for CTRPv2 from [here](https://modac.cancer.gov/assetDetails?dme_data_id=NCI-DME-MS01-8088592) and save it in `Combined/`.
-- Please use the provided CTRP (with adjusted AUCs) and PRISM datasets which are already processed. The processed datasets can be downloaded from [here](https://drive.google.com/drive/folders/1_w3_FSB0V4gzIdqku2enNfJIDeM5_pyO?usp=sharing). Unzip the `ctrpv2.zip` and `prism.zip` inside the `data` directory.
-- TODO: add instructions to process data from scratch in `data/README.md` (INCOMPLETE).
+- Please use the provided CTRPv2 (with adjusted AUCs) and PRISM datasets which are already processed. The processed datasets can be downloaded from [here](https://drive.google.com/drive/folders/1_w3_FSB0V4gzIdqku2enNfJIDeM5_pyO?usp=sharing). Unzip the `ctrpv2.zip` and `prism.zip` inside the `data` directory.
+- Find detailed instructions to download and process data in `data/README.md`.
 
 ## Experiments
 
